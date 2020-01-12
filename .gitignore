@@ -1,7 +1,14 @@
 # Editor
 *~
 *.swp
-
+.idea/
+logs/
+models/
+data/
+logs
+model
+models
+data
 # Build files
 Prj-Linux/lpr/TEST_*
 Prj-Linux/*build*/
