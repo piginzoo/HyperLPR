@@ -18,7 +18,7 @@ class LPR():
         self.modelFineMapping.load_weights(model_finemapping)
         self.modelSeqRec = self.model_seq_rec(model_seq_rec)
 
-    def computeSafeRegion(self,shape,bounding_rect):
+    def computeSafeRegion(self,shape,bounding_rect): # bounding_rect(x,y,w,h)
         top = bounding_rect[1] # y
         bottom  = bounding_rect[1] + bounding_rect[3] # y +  h
         left = bounding_rect[0] # x
@@ -117,11 +117,11 @@ class LPR():
         model = Model([input], [output])
         return model
 
-    def finemappingVertical(self,image,rect):
+    def finemappingVertical(self,image,rect): # rect: [x,y,w,h]
         resized = cv2.resize(image,(66,16))
         resized = resized.astype(np.float)/255
-        res_raw= self.modelFineMapping.predict(np.array([resized]))[0]
-        res  =res_raw*image.shape[1]
+        res_raw= self.modelFineMapping.predict(np.array([resized]))[0] # TODO: 预测的是什么？边框水平调整？
+        res  =res_raw*image.shape[1] # w
         res = res.astype(np.int)
         H,T = res
         H-=3
@@ -130,8 +130,8 @@ class LPR():
         T+=2;
         if T>= image.shape[1]-1:
             T= image.shape[1]-1
-        rect[2] -=  rect[2]*(1-res_raw[1] + res_raw[0])
-        rect[0]+=res[0]
+        rect[2] -=  rect[2]*(1-res_raw[1] + res_raw[0]) # w-= w*(1 - ? + ?)
+        rect[0]+=res[0] # x+= ?
         image = image[:,H:T+2]
         image = cv2.resize(image, (int(136), int(36)))
         return image,rect
@@ -139,7 +139,7 @@ class LPR():
     def recognizeOne(self,src):
         x_tempx = src
         x_temp = cv2.resize(x_tempx,( 164,48))
-        x_temp = x_temp.transpose(1, 0, 2)
+        x_temp = x_temp.transpose(1, 0, 2) # h,w,c=> w,h,c
         y_pred = self.modelSeqRec.predict(np.array([x_temp]))
         y_pred = y_pred[:,2:,:]
         return self.fastdecode(y_pred)
