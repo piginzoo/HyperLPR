@@ -1,10 +1,4 @@
 import sys
-reload(sys)
-sys.setdefaultencoding("utf-8")
-
-
-
-
 import time
 
 def SpeedTest(image_path):
@@ -15,7 +9,7 @@ def SpeedTest(image_path):
     for x in range(20):
         model.SimpleRecognizePlateByE2E(grr)
     t = (time.time() - t0)/20.0
-    print "Image size :" + str(grr.shape[1])+"x"+str(grr.shape[0]) +  " need " + str(round(t*1000,2))+"ms"
+    print( "Image size :" + str(grr.shape[1])+"x"+str(grr.shape[0]) +  " need " + str(round(t*1000,2))+"ms")
 
     
 
@@ -30,7 +24,7 @@ def drawRectBox(image,rect,addText):
                   cv2.LINE_AA)
     img = Image.fromarray(image)
     draw = ImageDraw.Draw(img)
-    draw.text((int(rect[0]+1), int(rect[1]-16)), addText.decode("utf-8"), (255, 255, 255), font=fontC)
+    draw.text((int(rect[0]+1), int(rect[1]-16)), addText, (255, 255, 255), font=fontC)
     imagex = np.array(img)
     return imagex
 
@@ -41,19 +35,17 @@ def drawRectBox(image,rect,addText):
 import HyperLPRLite as pr
 import cv2
 import numpy as np
-grr = cv2.imread("images_rec/2_.jpg")
+image = grr = cv2.imread("data/test/15套车检_30010022722_T1.jpg")
 model = pr.LPR("model/cascade.xml","model/model12.h5","model/ocr_plate_all_gru.h5")
 for pstr,confidence,rect in model.SimpleRecognizePlateByE2E(grr):
-        if confidence>0.7:
-            image = drawRectBox(grr, rect, pstr+" "+str(round(confidence,3)))
-            print "plate_str:"
-            print pstr
-            print "plate_confidence"
-            print confidence
+        #if confidence>0.7:
+    image = drawRectBox(grr, rect, pstr+" "+str(round(confidence,3)))
+    print( "plate_str:", pstr)
+    print( "plate_confidence", confidence)
             
 cv2.imshow("image",image)
 cv2.waitKey(0)
 
 
 
-SpeedTest("images_rec/2_.jpg")
+# SpeedTest("images_rec/2_.jpg")

@@ -51,7 +51,10 @@ class LPR():
         image = cv2.resize(image_gray, (int(scale*resize_h), resize_h))
         image_color_cropped = image[padding:resize_h-padding,0:image_gray.shape[1]]
         image_gray = cv2.cvtColor(image_color_cropped,cv2.COLOR_RGB2GRAY)
-        watches = self.watch_cascade.detectMultiScale(image_gray, en_scale, 2, minSize=(36, 9),maxSize=(36*40, 9*40))
+        cv2.imshow("image_color_cropped",image_gray)
+        # watches = self.watch_cascade.detectMultiScale(image_gray, en_scale, 2, minSize=(36, 9),maxSize=(36*40, 9*40))
+        watches = self.watch_cascade.detectMultiScale(image_gray)#, objects=en_scale, scaleFactor=2, minSize=(16, 9),maxSize=(36*40, 9*40))
+        print(watches)
         cropped_images = []
         for (x, y, w, h) in watches:
             x -= w * 0.14
