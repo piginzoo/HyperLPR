@@ -41,7 +41,8 @@ class LPR():
         x, y, w, h = self.computeSafeRegion(image.shape,rect)
         return image[y:y+h,x:x+w]
 
-    def detectPlateRough(self,image_gray,resize_h = 720,en_scale =1.08 ,top_bottom_padding_rate = 0.05):
+    # def detectPlateRough(self,image_gray,resize_h = 720,en_scale =1.08 ,top_bottom_padding_rate = 0.05):
+    def detectPlateRough(self, image_gray, resize_h=720, en_scale=1.08, top_bottom_padding_rate=0.05):
         if top_bottom_padding_rate>0.2:
             print("error:top_bottom_padding_rate > 0.2:",top_bottom_padding_rate)
             exit(1)
@@ -51,8 +52,10 @@ class LPR():
         image = cv2.resize(image_gray, (int(scale*resize_h), resize_h))
         image_color_cropped = image[padding:resize_h-padding,0:image_gray.shape[1]]
         image_gray = cv2.cvtColor(image_color_cropped,cv2.COLOR_RGB2GRAY)
+        # cv2.imwrite("data/debug/image_gray.jpg",image_gray)
         watches = self.watch_cascade.detectMultiScale(image_gray, en_scale, 2, minSize=(36, 9),maxSize=(36*40, 9*40))
         cropped_images = []
+        cropped_images_bbox = []
         for (x, y, w, h) in watches:
             x -= w * 0.14
             w += w * 0.28
@@ -60,7 +63,8 @@ class LPR():
             h += h * 0.3
             cropped = self.cropImage(image_color_cropped, (int(x), int(y), int(w), int(h)))
             cropped_images.append([cropped,[x, y+padding, w, h]])
-        return cropped_images
+            cropped_images_bbox.append([x,y,w,h])
+        return cropped_images,cropped_images_bbox
 
     def fastdecode(self,y_pred):
         results = ""
@@ -144,10 +148,17 @@ class LPR():
         y_pred = y_pred[:,2:,:]
         return self.fastdecode(y_pred)
 
-    def SimpleRecognizePlateByE2E(self,image):
-        images = self.detectPlateRough(image,image.shape[0],top_bottom_padding_rate=0.1)
+    def SimpleRecognizePlateByE2E(self,image,name=None,save_dir=None):
+        images,bbox = self.detectPlateRough(image,image.shape[0],top_bottom_padding_rate=0.1)
+
         res_set = []
         for j,plate in enumerate(images):
+            if name is not None:
+                print("画粗识别的框")
+                cv2.imwrite(os.path.join(save_dir,name)+"-"+str(j)+".jpg",plate)
+                x,y,w,h = bbox[j]
+                cv2.rectangle(image, (x,y),(x+w,y+h),(255,0,0), 2, cv2.LINE_AA)
+
             plate, rect  =plate
             image_rgb,rect_refine = self.finemappingVertical(plate,rect)
             res,confidence = self.recognizeOne(image_rgb)
