@@ -66,6 +66,7 @@ class LPR():
             cropped_images_bbox.append([x,y,w,h])
         return cropped_images,cropped_images_bbox
 
+
     def fastdecode(self,y_pred):
         results = ""
         confidence = 0.0
