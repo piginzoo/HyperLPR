@@ -1,6 +1,6 @@
 # 项目说明
 
-fork自HyperPR，做注释和修改以及实验。
+fork自[HyperPR](https://github.com/zeusees/HyperLPR)，用于理解项目，做注释、修改、实验。感谢原作者的无私分享！
 
 ## 对HyperPR的理解
 
@@ -64,7 +64,7 @@ step7. 使用CNN识别字符
 ssd效果更好一些，但是适合有gpu的场景。
 
 
-# 原有内容
+# 原有内容（保留）
 
 
 ![logo_t](./demo_images/logo.png)

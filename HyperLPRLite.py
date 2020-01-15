@@ -18,7 +18,7 @@ class LPR():
         self.modelFineMapping.load_weights(model_finemapping)
         self.modelSeqRec = self.model_seq_rec(model_seq_rec)
 
-    def computeSafeRegion(self,shape,bounding_rect):
+    def computeSafeRegion(self,shape,bounding_rect): # bounding_rect(x,y,w,h)
         top = bounding_rect[1] # y
         bottom  = bounding_rect[1] + bounding_rect[3] # y +  h
         left = bounding_rect[0] # x
@@ -41,7 +41,8 @@ class LPR():
         x, y, w, h = self.computeSafeRegion(image.shape,rect)
         return image[y:y+h,x:x+w]
 
-    def detectPlateRough(self,image_gray,resize_h = 720,en_scale =1.08 ,top_bottom_padding_rate = 0.05):
+    # def detectPlateRough(self,image_gray,resize_h = 720,en_scale =1.08 ,top_bottom_padding_rate = 0.05):
+    def detectPlateRough(self, image_gray, resize_h=720, en_scale=1.08, top_bottom_padding_rate=0.05):
         if top_bottom_padding_rate>0.2:
             print("error:top_bottom_padding_rate > 0.2:",top_bottom_padding_rate)
             exit(1)
@@ -51,11 +52,10 @@ class LPR():
         image = cv2.resize(image_gray, (int(scale*resize_h), resize_h))
         image_color_cropped = image[padding:resize_h-padding,0:image_gray.shape[1]]
         image_gray = cv2.cvtColor(image_color_cropped,cv2.COLOR_RGB2GRAY)
-        cv2.imshow("image_color_cropped",image_gray)
-        # watches = self.watch_cascade.detectMultiScale(image_gray, en_scale, 2, minSize=(36, 9),maxSize=(36*40, 9*40))
-        watches = self.watch_cascade.detectMultiScale(image_gray)#, objects=en_scale, scaleFactor=2, minSize=(16, 9),maxSize=(36*40, 9*40))
-        print(watches)
+        # cv2.imwrite("data/debug/image_gray.jpg",image_gray)
+        watches = self.watch_cascade.detectMultiScale(image_gray, en_scale, 2, minSize=(36, 9),maxSize=(36*40, 9*40))
         cropped_images = []
+        cropped_images_bbox = []
         for (x, y, w, h) in watches:
             x -= w * 0.14
             w += w * 0.28
@@ -63,7 +63,9 @@ class LPR():
             h += h * 0.3
             cropped = self.cropImage(image_color_cropped, (int(x), int(y), int(w), int(h)))
             cropped_images.append([cropped,[x, y+padding, w, h]])
-        return cropped_images
+            cropped_images_bbox.append([x,y,w,h])
+        return cropped_images,cropped_images_bbox
+
 
     def fastdecode(self,y_pred):
         results = ""
@@ -120,11 +122,11 @@ class LPR():
         model = Model([input], [output])
         return model
 
-    def finemappingVertical(self,image,rect):
+    def finemappingVertical(self,image,rect): # rect: [x,y,w,h]
         resized = cv2.resize(image,(66,16))
         resized = resized.astype(np.float)/255
-        res_raw= self.modelFineMapping.predict(np.array([resized]))[0]
-        res  =res_raw*image.shape[1]
+        res_raw= self.modelFineMapping.predict(np.array([resized]))[0] # TODO: 预测的是什么？边框水平调整？
+        res  =res_raw*image.shape[1] # w
         res = res.astype(np.int)
         H,T = res
         H-=3
@@ -133,8 +135,8 @@ class LPR():
         T+=2;
         if T>= image.shape[1]-1:
             T= image.shape[1]-1
-        rect[2] -=  rect[2]*(1-res_raw[1] + res_raw[0])
-        rect[0]+=res[0]
+        rect[2] -=  rect[2]*(1-res_raw[1] + res_raw[0]) # w-= w*(1 - ? + ?)
+        rect[0]+=res[0] # x+= ?
         image = image[:,H:T+2]
         image = cv2.resize(image, (int(136), int(36)))
         return image,rect
@@ -142,15 +144,22 @@ class LPR():
     def recognizeOne(self,src):
         x_tempx = src
         x_temp = cv2.resize(x_tempx,( 164,48))
-        x_temp = x_temp.transpose(1, 0, 2)
+        x_temp = x_temp.transpose(1, 0, 2) # h,w,c=> w,h,c
         y_pred = self.modelSeqRec.predict(np.array([x_temp]))
         y_pred = y_pred[:,2:,:]
         return self.fastdecode(y_pred)
 
-    def SimpleRecognizePlateByE2E(self,image):
-        images = self.detectPlateRough(image,image.shape[0],top_bottom_padding_rate=0.1)
+    def SimpleRecognizePlateByE2E(self,image,name=None,save_dir=None):
+        images,bbox = self.detectPlateRough(image,image.shape[0],top_bottom_padding_rate=0.1)
+
         res_set = []
         for j,plate in enumerate(images):
+            if name is not None:
+                print("画粗识别的框")
+                cv2.imwrite(os.path.join(save_dir,name)+"-"+str(j)+".jpg",plate)
+                x,y,w,h = bbox[j]
+                cv2.rectangle(image, (x,y),(x+w,y+h),(255,0,0), 2, cv2.LINE_AA)
+
             plate, rect  =plate
             image_rgb,rect_refine = self.finemappingVertical(plate,rect)
             res,confidence = self.recognizeOne(image_rgb)
